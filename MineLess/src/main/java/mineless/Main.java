@@ -42,7 +42,7 @@ public class Main extends PluginBase implements Listener {
 	public void onEnable() {
 		this.getServer().getPluginManager().registerEvents(this, this);
 		db = new DataBase(this);
-		this.getLogger().info(db.message("플러그인이 정상적으로 실행되었습니다"));
+		this.getLogger().info(DataBase.message("플러그인이 정상적으로 실행되었습니다"));
 		this.registers();
 	}
 

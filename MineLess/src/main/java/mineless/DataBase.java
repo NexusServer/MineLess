@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +22,15 @@ public class DataBase {
 	private static Main plugin;
 
 	private static DataBase instance = null;
-	private LinkedHashMap<String, Integer> mine = new LinkedHashMap<>();
-	private LinkedHashMap<String, Integer> nether = new LinkedHashMap<>();
+	public static LinkedHashMap<String, Integer> mine = new LinkedHashMap<>();
+	public static LinkedHashMap<String, Integer> nether = new LinkedHashMap<>();
 
 	List<String> mines = new ArrayList<>();
 	List<String> nethers = new ArrayList<>();
+
+	public static DataBase getInstance() {
+		return instance;
+	}
 
 	@SuppressWarnings({ "deprecation", "serial", "unchecked" })
 	public DataBase(Main plugin) {
@@ -60,12 +65,16 @@ public class DataBase {
 		mine.save();
 		positions.save();
 
-		this.mine = this.toMine((Map<String, Object>) mine.get("MINE"));
-		this.nether = this.toMine((Map<String, Object>) mine.get("NETHER"));
+		DataBase.mine = this.toMine((Map<String, Object>) mine.get("MINE"));
+		DataBase.nether = this.toMine((Map<String, Object>) mine.get("NETHER"));
 
 		mines = positions.getList("MINE");
 		nethers = positions.getList("NETHER");
 		DataBase.plugin = plugin;
+	}
+
+	public LinkedHashMap<String, Integer> getMine() {
+		return mine;
 	}
 
 	public Block mineing(Position pos) {
@@ -104,7 +113,15 @@ public class DataBase {
 		return;
 	}
 
-	private LinkedHashMap<String, Integer> toMine(Map<String, Object> m) {
+	public void removeMine(Block block) {
+		mine.remove(toString(block));
+	}
+
+	public void putMine(Block block, int i) {
+		mine.put(toString(block), i);
+	}
+
+	public LinkedHashMap<String, Integer> toMine(Map<String, Object> m) {
 		LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
 		ArrayList<String> slist = new ArrayList<>();
 		slist.addAll(m.keySet());
@@ -185,6 +202,15 @@ public class DataBase {
 
 	}
 
+	public static boolean isInt(String str) {
+		try {
+			Integer.parseInt(str);
+		} catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
+
 	public String toString(Position pos) {
 		StringBuilder str = new StringBuilder();
 		str.append(pos.getFloorX()).append(":").append(pos.getFloorY()).append(":").append(pos.getFloorZ()).append(":")
@@ -211,7 +237,7 @@ public class DataBase {
 		return "§l§6[알림]§r§7 " + message;
 	}
 
-	public static String lengthString(int length, String string) {
+	public String lengthString(int length, String string) {
 		StringBuilder str = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {
 			str.append(" ");
