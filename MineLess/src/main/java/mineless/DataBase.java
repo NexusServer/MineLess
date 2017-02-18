@@ -1,5 +1,6 @@
 package mineless;
 
+import java.io.Console;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,8 +23,8 @@ public class DataBase {
 	private static Main plugin;
 
 	private static DataBase instance = null;
-	public static LinkedHashMap<String, Integer> mine = new LinkedHashMap<>();
-	public static LinkedHashMap<String, Integer> nether = new LinkedHashMap<>();
+	public LinkedHashMap<String, Integer> mine = new LinkedHashMap<>();
+	// public LinkedHashMap<String, Integer> nether = new LinkedHashMap<>();
 
 	List<String> mines = new ArrayList<>();
 	List<String> nethers = new ArrayList<>();
@@ -32,10 +33,11 @@ public class DataBase {
 		return instance;
 	}
 
-	@SuppressWarnings({ "deprecation", "serial", "unchecked" })
+	@SuppressWarnings({ "deprecation", "serial" })
 	public DataBase(Main plugin) {
 		plugin.getDataFolder().mkdirs();
-		Config mine = new Config(plugin.getDataFolder() + "/mine.json", Config.JSON,
+		instance = this;
+		Config config = new Config(plugin.getDataFolder() + "/mine.json", Config.JSON,
 				new ConfigSection(new LinkedHashMap<String, Object>() {
 					{
 						LinkedHashMap<String, Object> map1 = new LinkedHashMap<>();
@@ -54,22 +56,24 @@ public class DataBase {
 					}
 
 				}));
+
 		Config positions = new Config(new File(plugin.getDataFolder(), "position.json"), Config.JSON,
 				new ConfigSection(new LinkedHashMap<String, Object>() {
 
 					{
 						put("MINE", new ArrayList<String>());
-						put("NETHER", new ArrayList<String>());
 					}
 				}));
-		mine.save();
+
+		config.save();
 		positions.save();
 
-		DataBase.mine = this.toMine((Map<String, Object>) mine.get("MINE"));
-		DataBase.nether = this.toMine((Map<String, Object>) mine.get("NETHER"));
+		this.mine = this.toMine((Map<String, Object>) config.get("MINE"));
+		// this.nether = this.toMine((Map<String, Object>) mine.get("NETHER"));
 
 		mines = positions.getList("MINE");
 		nethers = positions.getList("NETHER");
+
 		DataBase.plugin = plugin;
 	}
 
@@ -85,18 +89,20 @@ public class DataBase {
 					return toBlock(b);
 				}
 			}
-			return Block.get(Block.COBBLESTONE);
-		} else if (nethers.contains(toString(pos))) {
-			int ran = new Random().nextInt(1000);
-			for (String b : nether.keySet()) {
-				if (ran < (int) nether.get(b)) {
-					return toBlock(b);
-				}
-			}
-			return Block.get(Block.NETHERRACK);
+			return Block.get(Block.STONE);
 		}
-		return Block.get(Block.GOLD_BLOCK);
+		return null;
 	}
+	// } else if (nethers.contains(toString(pos))) {
+	// int ran = new Random().nextInt(1000);
+	// for (String b : nether.keySet()) {
+	// if (ran < (int) nether.get(b)) {
+	// return toBlock(b);
+	// }
+	// }
+	// return Block.get(Block.NETHERRACK);
+	// }
+	// return Block.get(Block.GOLD_BLOCK);
 
 	public void addMine(Position pos) {
 		mines.add(toString(pos));
@@ -121,15 +127,21 @@ public class DataBase {
 		mine.put(toString(block), i);
 	}
 
-	public LinkedHashMap<String, Integer> toMine(Map<String, Object> m) {
+	public LinkedHashMap<String, Integer> toMines(LinkedHashMap<String, Integer> mine2) {
+		HashMap<String, Object> old = new HashMap<String, Object>();
+		old.putAll(mine2);
+		return toMine(old);
+	}
+
+	public LinkedHashMap<String, Integer> toMine(Map<String, Object> old) {
 		LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
-		ArrayList<String> slist = new ArrayList<>();
-		slist.addAll(m.keySet());
-		Collections.sort(slist, new Comparator<String>() {
+		ArrayList<String> list = new ArrayList<>();
+		list.addAll(old.keySet());
+		Collections.sort(list, new Comparator<String>() {
 			@Override
 			public int compare(String s1, String s2) {
-				int i = toInteger((String) m.get(s1));
-				int i2 = toInteger((String) m.get(s2));
+				int i = toInteger((String) (old.get(s1) + ""));
+				int i2 = toInteger((String) (old.get(s2) + ""));
 
 				if (i - i2 > 0) {
 					return 1;
@@ -140,16 +152,23 @@ public class DataBase {
 				}
 			}
 		});
-
-		for (String s : slist) {
-			map.put(s, toInteger((String) m.get(s)));
-		}
-
+		for (String s : list)
+			map.put(s, toInteger((old.get(s) + "")));
 		return map;
 	}
 
 	public int toInteger(String str) {
 		int i = 0;
+		if (str.contains(".")) {
+			String s[] = str.split(".");
+			try {
+				i = Integer.parseInt(s[0]);
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			}
+			return i;
+		}
+
 		try {
 			i = Integer.parseInt(str);
 		} catch (NumberFormatException e) {
@@ -237,6 +256,10 @@ public class DataBase {
 		return "§l§6[알림]§r§7 " + message;
 	}
 
+	public static String success(String message) {
+		return "§l§b[안내]§r§7 " + message;
+	}
+
 	public String lengthString(int length, String string) {
 		StringBuilder str = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {
@@ -254,19 +277,20 @@ public class DataBase {
 	public void save() {
 		LinkedHashMap<String, Object> map1 = new LinkedHashMap<>();
 		for (String block : mine.keySet()) {
-			map1.put(block, mine.get(block) + "");
+			map1.put(block, (mine.get(block) + ""));
 		}
 		Config config = new Config(new File(plugin.getDataFolder(), "mine.json"), Config.JSON);
 		config.set("MINE", map1);
-		LinkedHashMap<String, Object> map12 = new LinkedHashMap<>();
-		for (String block1 : nether.keySet()) {
-			map12.put(block1, nether.get(block1) + "");
-		}
-		config.set("NETHER", map12);
+		/// LinkedHashMap<String, Object> map12 = new LinkedHashMap<>();
+		// for (String block1 : nether.keySet()) {
+		// map12.put(block1, nether.get(block1) + "");
+		// }
+		// config.set("NETHER", map12);
 		config.save();
 		Config config1 = new Config(new File(plugin.getDataFolder(), "position.json"), Config.JSON);
 		config1.set("MINE", mines);
-		config1.set("NETHER", nethers);
+		// config1.set("NETHER", nethers);
 		config1.save();
 	}
+
 }

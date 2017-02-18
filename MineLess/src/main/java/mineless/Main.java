@@ -54,11 +54,12 @@ public class Main extends PluginBase implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onBreak(BlockBreakEvent event) {
 		if (db.isMine(event.getBlock())) {
-
+			
 			Block block = db.mineing(event.getBlock());
 			block.setLevel(event.getBlock().getLevel());
 			block.position(event.getBlock());
-
+			event.getPlayer().getInventory().addItem(event.getDrops());
+			event.setDrops(new Item[]{});
 			this.getServer().getScheduler().scheduleDelayedTask(
 					new BlockPlaceTask(this, Block.get(block.getId(), block.getDamage(), block)), 5);
 		}

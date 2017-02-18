@@ -27,10 +27,12 @@ public class addMineCommand extends Command {
 		// parameter.put("광산", new CommandParameter[] { new
 		// CommandParameter("<추가모드|제거모드|일반모드|확류설정>", true) });
 		parameter.put("추가모드", new CommandParameter[] {
-				new CommandParameter("<추가모드|일반모드|제거모드>", CommandParameter.ARG_TYPE_STRING_ENUM, false) });
-		parameter.put("목록", new CommandParameter[] { new CommandParameter("확률조정", false), new CommandParameter("목록") });
-		parameter.put("확률조정", new CommandParameter[] { new CommandParameter("확률조정", false),
-				new CommandParameter("확률(최대 1000)", CommandParameter.ARG_TYPE_INT, true) });
+				new CommandParameter("<추가모드|일반모드|제거모드>", CommandParameter.ARG_TYPE_STRING_ENUM, true) });
+		parameter.put("목록",
+				new CommandParameter[] { new CommandParameter("확률조정", true), new CommandParameter("목록", true) });
+		parameter.put("확률조정",
+				new CommandParameter[] { new CommandParameter("확률조정", false), new CommandParameter("조정", false),
+						new CommandParameter("확률(최대 1000)", CommandParameter.ARG_TYPE_INT, true) });
 		// parameter.put("확률설정", optaion);
 		// parameter.put("광산", parameters);
 		this.setCommandParameters(parameter);
@@ -82,10 +84,13 @@ public class addMineCommand extends Command {
 				sender.sendMessage(DataBase.command("정상적으로 처리되었습니다"));
 				return true;
 			case "확률조정":
-
+				if (args.length <= 1) {
+					sender.sendMessage(getUsage());
+					return true;
+				}
 				if (args[1].equals("조정")) {
-					if (args[2].isEmpty()) {
-						sender.sendMessage(DataBase.alert("/광산 확률조정 조정 <확률> : 손에 있는 블럭으로 광산을 생성합니다"));
+					if (args.length <= 2) {
+						sender.sendMessage(getUsage());
 						return true;
 					}
 					if (!((Player) sender).getInventory().getItemInHand().canBePlaced()) {
@@ -104,42 +109,43 @@ public class addMineCommand extends Command {
 						sender.sendMessage(DataBase.alert("확률이 1000을 넘을 순 없습니다"));
 						return true;
 					}
+
 					if (pers == 0) {
 						if (DataBase.getInstance().getMine().keySet()
 								.contains(DataBase.getInstance().toString(block))) {
 							DataBase.getInstance().removeMine(block);
-							Map<String, Object> map = new HashMap<>();
-							for (String k : DataBase.mine.keySet()) {
-								map.put(k, DataBase.mine.get(k));
-							}
-							DataBase.mine = DataBase.getInstance().toMine(map);
 							sender.sendMessage(DataBase.message("광산이 정상적으로 제거되었습니다"));
+							return true;
 						}
 
-					} else if (DataBase.getInstance().getMine().keySet()
-							.contains(DataBase.getInstance().toString(block))) {
-						DataBase.mine.replace(DataBase.getInstance().toString(block), pers);
-						Map<String, Object> map = new HashMap<>();
-						for (String k : DataBase.mine.keySet()) {
-							map.put(k, DataBase.mine.get(k));
-						}
-						DataBase.mine = DataBase.getInstance().toMine(map);
-						sender.sendMessage(DataBase.message("정상적으로 확률이 변경되었습니다"));
 					}
-				} else if (args[1].equals("목록")) {
-					StringBuilder str = new StringBuilder();
-					DataBase.getInstance().getMine().forEach((String s, Integer i) -> {
-						str.append(DataBase.getInstance().lengthString(25,
-								s + "(" + DataBase.getInstance().toBlock(s).getName() + ")"));
-						str.append(i + "\n");
-					});
-					sender.sendMessage(DataBase.command(str.toString()));
 
-				} else {
-					sender.sendMessage(getUsage());
+					else if (DataBase.getInstance().getMine().keySet()
+							.contains(DataBase.getInstance().toString(block))) {
+
+						sender.sendMessage(DataBase.message("정상적으로 확률이 변경되었습니다"));
+						sender.sendMessage(DataBase.success("[§b+§7] §f" + block.getName() + "§7:§2"
+								+ DataBase.getInstance().mine.get(DataBase.getInstance().toString(block)) + " §7->§l§c"
+								+ pers));
+						DataBase.getInstance().mine.replace(DataBase.getInstance().toString(block), pers);
+						LinkedHashMap<String, Integer> map = DataBase.getInstance()
+								.toMines(DataBase.getInstance().mine);
+						DataBase.getInstance().mine = map;
+						return true;
+					}
+					DataBase.getInstance().mine.put(DataBase.getInstance().toString(block), pers);
+					LinkedHashMap<String, Integer> map = DataBase.getInstance().toMines(DataBase.getInstance().mine);
+					DataBase.getInstance().mine = map;
+					sender.sendMessage(DataBase.message("정상적으로 광산품목이 추가되었습니다"));
+					sender.sendMessage(DataBase.success("[§b+§7] §f" + block.getName() + ":" + pers));
+					return true;
+
+				} else if (args[1].equals("목록")) {
+					this.getList((Player) sender);
 					return true;
 				}
-				sender.sendMessage(this.getUsage());
+
+				sender.sendMessage(getUsage());
 				return true;
 
 			default:
@@ -152,6 +158,13 @@ public class addMineCommand extends Command {
 		return true;
 	}
 
-
-
+	private void getList(Player player) {
+		StringBuilder str = new StringBuilder();
+		for (String s : DataBase.getInstance().mine.keySet()) {
+			str.append(DataBase.message(
+					DataBase.getInstance().lengthString(25, s) + "(" + DataBase.getInstance().toBlock(s).getName()
+							+ ") : " + DataBase.getInstance().mine.get(s) + "\n"));
+		}
+		player.sendMessage(str.toString());
+	}
 }
